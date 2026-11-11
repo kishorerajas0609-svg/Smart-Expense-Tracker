@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Smart Expense Tracker{% endblock %}
+{% block page_title %}Finance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- 1. Top Greeting & Quick Action Banner -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="h4 fw-bold mb-1">Hello, {{ user.first_name|default:user.username }}! 👋</h2>
+            <p class="text-muted small mb-0">Here is a comprehensive summary of your spending and financial activity.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'add_expense' %}" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm" id="btn-dashboard-add">
+                <i class="bi bi-plus-circle"></i>
+                <span>Add Expense</span>
+            </a>
+            <a href="{% url 'reports' %}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2 bg-white" id="btn-dashboard-export">
+                <i class="bi bi-file-earmark-arrow-down"></i>
+                <span>Export Report</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. Metric / Summary Cards Row -->
+    <div class="row g-3 mb-4">
+        <!-- Today's Expenses -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card today h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Today's Expenses</div>
+                        <div class="metric-value mt-2">₹{{ today_total|floatformat:2 }}</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">Spent so far today</small>
+                    </div>
+                    <div class="icon-box">
+                        <i class="bi bi-calendar2-day"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- This Week's Expenses -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card week h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">This Week</div>
+                        <div class="metric-value mt-2">₹{{ week_total|floatformat:2 }}</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">Monday to present</small>
+                    </div>
+                    <div class="icon-box">
+                        <i class="bi bi-calendar-week"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- This Month's Expenses -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card month h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">This Month</div>
+                        <div class="metric-value mt-2">₹{{ month_total|floatformat:2 }}</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">Current month total</small>
+                    </div>
+                    <div class="icon-box">
+                        <i class="bi bi-calendar-month"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Transactions & All-time -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card total h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">All-Time Total</div>
+                        <div class="metric-value mt-2">₹{{ all_time_total|floatformat:2 }}</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">{{ total_transactions }} recorded transactions</small>
+                    </div>
+                    <div class="icon-box">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Interactive Charts Row -->
+    <div class="row g-3 mb-4">
+        <!-- Monthly Spending Trend (Bar Chart) -->
+        <div class="col-12 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Monthly Spending Trend</span>
+                    <span class="badge bg-light text-muted border">Last 6 Months</span>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center p-3" style="min-height: 290px;">
+                    <canvas id="monthlyTrendChart" height="130"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown (Doughnut Chart) -->
+        <div class="col-12 col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="bi bi-pie-chart-fill text-warning me-2"></i>Category Breakdown</span>
+                    <span class="badge bg-light text-muted border">By Volume</span>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center p-3" style="min-height: 290px;">
+                    {% if category_summary %}
+                        <div style="width: 100%; max-width: 250px; margin: 0 auto;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-pie-chart fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                            <p class="mb-0 small">No expense data yet to plot categories.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Recent Expenses Table -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-secondary"></i>
+                <span class="fw-bold">Recent Transactions</span>
+            </div>
+            <a href="{% url 'expense_list' %}" class="btn btn-sm btn-outline-primary" id="btn-view-all-expenses">
+                <span>View Full History</span>
+                <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="card-body p-0">
+            {% if recent_expenses %}
+                <div class="table-responsive">
+                    <table class="table table-custom table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exp in recent_expenses %}
+                                <tr>
+                                    <td class="text-nowrap text-secondary small">
+                                        <i class="bi bi-calendar3 me-1"></i>{{ exp.date|date:"M d, Y" }}
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ exp.description }}</div>
+                                        {% if exp.notes %}
+                                            <small class="text-muted d-block text-truncate" style="max-width: 280px;">{{ exp.notes }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge-category {{ exp.category_badge_class }}">
+                                            <i class="bi {{ exp.category_icon }}"></i>
+                                            <span>{{ exp.category }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark">
+                                        ₹{{ exp.amount|floatformat:2 }}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'edit_expense' exp.id %}" class="btn btn-light border btn-sm text-secondary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'delete_expense' exp.id %}" class="btn btn-light border btn-sm text-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3 text-secondary opacity-50">
+                        <i class="bi bi-inbox fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold">No Expenses Logged Yet</h5>
+                    <p class="text-muted small mb-3">Begin by recording your first expense to unlock financial insights and visual analytics.</p>
+                    <a href="{% url 'add_expense' %}" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-plus-lg me-1"></i> Add Your First Expense
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // -------------------------------------------------------------------------
+    // Render Chart.js Visualizations
+    // -------------------------------------------------------------------------
+    const categoryLabels = {{ category_labels_json|safe }};
+    const categoryData = {{ category_data_json|safe }};
+    const categoryColors = {{ category_colors_json|safe }};
+
+    const monthlyLabels = {{ monthly_labels_json|safe }};
+    const monthlyData = {{ monthly_data_json|safe }};
+
+    // 1. Doughnut Chart: Category Spending
+    const catCanvas = document.getElementById('categoryChart');
+    if (catCanvas && categoryLabels.length > 0) {
+        new Chart(catCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: categoryColors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10,
+                            font: { family: 'Inter', size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const val = context.raw || 0;
+                                return ` ${context.label}: ₹${val.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    // 2. Bar Chart: Monthly Spending Trend
+    const monthlyCanvas = document.getElementById('monthlyTrendChart');
+    if (monthlyCanvas) {
+        new Chart(monthlyCanvas, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    label: 'Total Expenses (₹)',
+                    data: monthlyData,
+                    backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                    hoverBackgroundColor: '#4338CA',
+                    borderRadius: 6,
+                    maxBarThickness: 45
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter', size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F1F5F9' },
+                        ticks: {
+                            callback: function(value) { return '₹' + value; },
+                            font: { family: 'Inter', size: 11 }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return ` Spent: ₹${Number(context.raw).toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

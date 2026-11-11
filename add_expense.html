@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Expense - Smart Expense Tracker{% endblock %}
+{% block page_title %}Record New Expense{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+        <div class="row g-4">
+            <!-- Left Column: Add Expense Form -->
+            <div class="col-12 col-lg-7">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
+                            <h5 class="mb-0 fw-bold">New Expense Details</h5>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">
+                            <i class="bi bi-magic me-1"></i> Smart Categorization
+                        </span>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <form method="post" action="{% url 'add_expense' %}" id="addExpenseForm" novalidate>
+                            {% csrf_token %}
+
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger py-2 small mb-3">
+                                    {% for error in form.non_field_errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <!-- Description with Smart Auto-Suggest -->
+                            <div class="mb-3">
+                                <label for="id_description" class="form-label d-flex justify-content-between align-items-center">
+                                    <span>Description <span class="text-danger">*</span></span>
+                                    <small class="text-muted fw-normal" style="font-size: 0.75rem;">Type keywords like <i>uber, pizza, electricity</i></small>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-card-text"></i></span>
+                                    {{ form.description }}
+                                </div>
+                                <div id="smartSuggestionContainer" class="mt-2"></div>
+                                {% if form.description.errors %}
+                                    <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Amount and Date in a 2-col row -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-12 col-sm-6">
+                                    <label for="id_amount" class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted border-end-0">₹</span>
+                                        {{ form.amount }}
+                                    </div>
+                                    {% if form.amount.errors %}
+                                        <div class="text-danger small mt-1">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <label for="id_date" class="form-label">Expense Date <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-calendar3"></i></span>
+                                        {{ form.date }}
+                                    </div>
+                                    {% if form.date.errors %}
+                                        <div class="text-danger small mt-1">{{ form.date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Category Selection (Auto-filled by AI / user override) -->
+                            <div class="mb-3">
+                                <label for="id_category" class="form-label d-flex justify-content-between align-items-center">
+                                    <span>Category <span class="text-danger">*</span></span>
+                                    <small class="text-muted fw-normal" style="font-size: 0.75rem;">Auto-suggested or choose manually</small>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-tag-fill"></i></span>
+                                    {{ form.category }}
+                                </div>
+                                {% if form.category.errors %}
+                                    <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Optional Notes -->
+                            <div class="mb-4">
+                                <label for="id_notes" class="form-label">Optional Notes / Remarks</label>
+                                {{ form.notes }}
+                                <div class="form-text text-muted" style="font-size: 0.75rem;">Add invoice references, mode of payment, or attendee details.</div>
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Submit / Cancel -->
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2 px-4 shadow-sm" id="btn-save-expense">
+                                    <i class="bi bi-check-lg"></i>
+                                    <span>Save Expense</span>
+                                </button>
+                                <a href="{% url 'expense_list' %}" class="btn btn-outline-secondary px-3">
+                                    Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Smart Feature Explainer & Quick Hints -->
+            <div class="col-12 col-lg-5">
+                <div class="card border-0 bg-light p-3 mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold">
+                        <i class="bi bi-lightbulb-fill"></i>
+                        <span>Smart Keyword Auto-Detection</span>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        As you type into the <b>Description</b> field, our smart system detects keywords and automatically selects the matching category in real-time. You are always free to change it manually!
+                    </p>
+
+                    <div class="list-group list-group-flush rounded-3 small">
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-travel mt-1"><i class="bi bi-car-front-fill"></i> Travel</span>
+                            <span class="text-muted">Uber, ola, bus, train, petrol, taxi, flight, fuel</span>
+                        </div>
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-food mt-1"><i class="bi bi-cup-hot-fill"></i> Food</span>
+                            <span class="text-muted">Pizza, restaurant, groceries, coffee, lunch, dinner</span>
+                        </div>
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-bills mt-1"><i class="bi bi-receipt-cutoff"></i> Bills</span>
+                            <span class="text-muted">Electricity, water, internet, wifi, phone, rent</span>
+                        </div>
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-entertainment mt-1"><i class="bi bi-controller"></i> Entertainment</span>
+                            <span class="text-muted">Movie, games, netflix, cinema, spotify, party</span>
+                        </div>
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-healthcare mt-1"><i class="bi bi-heart-pulse-fill"></i> Healthcare</span>
+                            <span class="text-muted">Doctor, medicine, hospital, clinic, dentist, tablets</span>
+                        </div>
+                        <div class="list-group-item bg-white d-flex align-items-start gap-2 py-2">
+                            <span class="badge-category badge-education mt-1"><i class="bi bi-book-half"></i> Education</span>
+                            <span class="text-muted">Books, tuition, courses, exam, fee, university</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 bg-primary-subtle text-primary p-3">
+                    <div class="d-flex align-items-center gap-2 fw-semibold mb-1 small">
+                        <i class="bi bi-shield-check fs-5"></i>
+                        <span>Strict Personal Privacy</span>
+                    </div>
+                    <p class="mb-0" style="font-size: 0.775rem;">
+                        Your expense records are private to your account and never shared with other users.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

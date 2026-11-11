@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Settings - Smart Expense Tracker{% endblock %}
+{% block page_title %}Profile & Account Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <div class="row g-4">
+        <!-- Left Column: User Summary Card -->
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm text-center p-4 mb-4">
+                <div class="user-avatar mx-auto mb-3" style="width: 72px; height: 72px; font-size: 1.85rem; border: 3px solid #EEF2FF;">
+                    {{ user.first_name|default:user.username|make_list|first|upper }}
+                </div>
+                <h5 class="fw-bold mb-0 text-dark">{{ user.get_full_name|default:user.username }}</h5>
+                <p class="text-muted small mb-3">@{{ user.username }}</p>
+
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">
+                        <i class="bi bi-person-check-fill me-1"></i> Active Member
+                    </span>
+                </div>
+
+                <div class="border-top pt-3 text-start small">
+                    <div class="d-flex justify-content-between py-1 text-muted">
+                        <span>Email:</span>
+                        <span class="text-dark fw-semibold text-truncate ms-2">{{ user.email|default:"Not specified" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 text-muted">
+                        <span>Joined:</span>
+                        <span class="text-dark fw-semibold">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 text-muted">
+                        <span>Transactions:</span>
+                        <span class="text-dark fw-bold">{{ total_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 text-muted">
+                        <span>Lifetime Spending:</span>
+                        <span class="text-primary fw-bold">₹{{ total_spent|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 bg-light p-3 small text-muted">
+                <div class="fw-semibold text-dark mb-1"><i class="bi bi-shield-lock-fill text-primary me-1"></i> Data Security Note</div>
+                All transactions are tied strictly to your user account ID. Django password hashing uses PBKDF2 with SHA256.
+            </div>
+        </div>
+
+        <!-- Right Column: Settings Forms -->
+        <div class="col-12 col-lg-8">
+            <!-- Profile Update Form -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-person-vcard text-primary me-2"></i>Personal Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="update_profile" value="1">
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-sm-6">
+                                <label for="{{ profile_form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                {{ profile_form.first_name }}
+                                {% if profile_form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ profile_form.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12 col-sm-6">
+                                <label for="{{ profile_form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                {{ profile_form.last_name }}
+                                {% if profile_form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ profile_form.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ profile_form.email.id_for_label }}" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-envelope"></i></span>
+                                {{ profile_form.email }}
+                            </div>
+                            {% if profile_form.email.errors %}
+                                <div class="text-danger small mt-1">{{ profile_form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2 px-4 shadow-sm" id="btn-save-profile">
+                            <i class="bi bi-check-lg"></i>
+                            <span>Update Profile Info</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Password Change Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-key-fill text-warning me-2"></i>Change Password</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="change_password" value="1">
+
+                        {% if password_form.non_field_errors %}
+                            <div class="alert alert-danger py-2 small mb-3">
+                                {% for error in password_form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ password_form.old_password.id_for_label }}" class="form-label">Current Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-lock"></i></span>
+                                <input type="password" name="old_password" autocomplete="current-password" required id="{{ password_form.old_password.id_for_label }}" class="form-control border-start-0" placeholder="Enter current password">
+                            </div>
+                            {% if password_form.old_password.errors %}
+                                <div class="text-danger small mt-1">{{ password_form.old_password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-sm-6">
+                                <label for="{{ password_form.new_password1.id_for_label }}" class="form-label">New Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                    <input type="password" name="new_password1" autocomplete="new-password" required id="{{ password_form.new_password1.id_for_label }}" class="form-control border-start-0" placeholder="New password">
+                                </div>
+                                {% if password_form.new_password1.errors %}
+                                    <div class="text-danger small mt-1">{{ password_form.new_password1.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12 col-sm-6">
+                                <label for="{{ password_form.new_password2.id_for_label }}" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-shield-check"></i></span>
+                                    <input type="password" name="new_password2" autocomplete="new-password" required id="{{ password_form.new_password2.id_for_label }}" class="form-control border-start-0" placeholder="Confirm new password">
+                                </div>
+                                {% if password_form.new_password2.errors %}
+                                    <div class="text-danger small mt-1">{{ password_form.new_password2.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning text-dark d-inline-flex align-items-center gap-2 px-4 fw-semibold shadow-sm" id="btn-save-password">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Update Password</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

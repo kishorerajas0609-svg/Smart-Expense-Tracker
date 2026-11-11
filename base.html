@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+      <meta charset="UTF-8">
+    </head>{% load static %}
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Expense Tracker{% endblock %} - Smart Finance</title>
+    <meta name="description" content="Track your personal expenses smartly with automated category predictions, interactive analytics, and professional PDF reports.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+    <div class="app-wrapper">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <span class="d-block lh-1">SmartTracker</span>
+                    <small class="text-secondary" style="font-size: 0.72rem; font-weight: normal;">Personal Finance</small>
+                </div>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="sidebar-section-title">Overview</li>
+                <li>
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'dashboard_alt' %}active{% endif %}" id="nav-dashboard">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-section-title">Management</li>
+                <li>
+                    <a href="{% url 'add_expense' %}" class="nav-link {% if request.resolver_match.url_name == 'add_expense' %}active{% endif %}" id="nav-add-expense">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>Add Expense</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'expense_list' %}" class="nav-link {% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}" id="nav-history">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Expense History</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" id="nav-reports">
+                        <i class="bi bi-file-earmark-bar-graph-fill"></i>
+                        <span>Reports & Export</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-section-title">Account</li>
+                <li>
+                    <a href="{% url 'profile' %}" class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" id="nav-profile">
+                        <i class="bi bi-person-gear"></i>
+                        <span>Profile & Settings</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    {{ user.first_name|default:user.username|make_list|first|upper }}
+                </div>
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="text-white text-truncate fw-semibold" style="font-size: 0.9rem;">
+                        {{ user.first_name|default:user.username }}
+                    </div>
+                    <small class="text-secondary d-block text-truncate" style="font-size: 0.75rem;">
+                        {{ user.email|default:"Personal Account" }}
+                    </small>
+                </div>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger border-0 text-white-50" title="Sign Out">
+                    <i class="bi bi-box-arrow-right fs-5"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <div class="main-content-wrapper">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-secondary d-lg-none py-1 px-2" id="sidebarToggle" type="button" aria-label="Toggle Navigation">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{% url 'add_expense' %}" class="btn btn-primary d-none d-sm-inline-flex align-items-center gap-2 shadow-sm" id="btn-quick-add">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>New Expense</span>
+                    </a>
+
+                    <div class="dropdown">
+                        <button class="btn btn-light rounded-pill border dropdown-toggle d-flex align-items-center gap-2 py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="user-avatar" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                {{ user.username|make_list|first|upper }}
+                            </span>
+                            <span class="fw-medium small d-none d-md-inline">{{ user.username }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                            <li><h6 class="dropdown-header">Signed in as <b>{{ user.username }}</b></h6></li>
+                            <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" href="{% url 'reports' %}"><i class="bi bi-download me-2"></i>Export Statements</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Notification Messages -->
+            {% if messages %}
+                <div class="px-4 pt-3">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm mb-2" role="alert">
+                            {% if message.tags == 'success' %}
+                                <i class="bi bi-check-circle-fill fs-5"></i>
+                            {% elif message.tags == 'danger' %}
+                                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="bi bi-exclamation-circle-fill fs-5"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill fs-5"></i>
+                            {% endif %}
+                            <div class="flex-grow-1">{{ message }}</div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Main Content Container -->
+            <main class="content-area">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+{% else %}
+    <!-- Unauthenticated Layout (Auth Pages) -->
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <!-- Messages on Auth Page -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 small mb-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Bootstrap 5.3 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+<!-- App Main JS -->
+<script src="{% static 'js/main.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
