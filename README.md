@@ -142,9 +142,7 @@ The `seed_data.py` file defines a Django management command, but it is currently
 python manage.py test
 ```
 
-## Screenshots
 
-No screenshot files or screenshot directory are included in the repository at this time. Add screenshots here when they are available.
 
 ## Future enhancements
 
